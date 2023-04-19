@@ -5,91 +5,21 @@ import requests
 import os
 import asyncio
 import datetime
-from google.oauth2 import service_account
-from google.cloud import storage
-
+from dotenv import load_dotenv
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
 # Get the path to the JSON file in the root directory
-json_path = os.path.join(os.path.dirname(
-    __file__), 'genuine-tower-366909-33c5c78c60aa.json')
 
-# Load the JSON file from the root directory
-with open(json_path) as json_file:
-    credentials_dict = json.load(json_file)
-
-# Create the credentials object from the JSON data
-credentials = service_account.Credentials.from_service_account_info(
-    credentials_dict)
-
-# Create the Google Cloud Storage client
-client = storage.Client(credentials=credentials)
-
-
-# BuddyBotty = 1022646163301736458
-OTB_Testing = 1072413437604401202
-Naraku = 1040475128091385876
 
 servers = [1040475128091385876, 932741816548229120, 848077358858764329]
-
-# Intenets are set to all in the code so it doesnt get complicated. Bot only requires basic permissions to function in Discord
-
-
-def load_prefixes():
-    client = storage.Client()
-    bucket = client.get_bucket(os.environ['STORAGE_BUCKET'])
-    blob = bucket.blob('prefixes.json')
-    prefixes = json.loads(blob.download_as_string())
-    return {int(user_id): balance for user_id, balance in prefixes.items()}
-
-
-# Create a function to save balances to a JSON file
-
-
-def save_prefixes(prefixes):
-    client = storage.Client()
-    bucket = client.get_bucket(os.environ['STORAGE_BUCKET'])
-    blob = bucket.blob('prefixes.json')
-    blob.upload_from_string(json.dumps(prefixes))
-
-
-LAST_PLAYED_FILENAME = 'prefixes.json'
-
-try:
-    prefixes = load_prefixes()
-except FileNotFoundError:
-    prefixes = {}
-    save_prefixes(prefixes)
-
-# Create a function that returns the appropriate prefix for a guild
-
-
-def get_prefix(ctx, message):
-    # Load prefixes from file
-    prefixes = load_prefixes()
-    # Check if the guild has a custom prefix
-    if message.guild and message.guild.id in prefixes:
-        return prefixes[message.guild.id]
-    # Otherwise use the default prefix '/'
-    else:
-        return '/'
-
 
 COOLDOWN_TIME = 60
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 bot.cooldowns = commands.CooldownMapping.from_cooldown(
     1, COOLDOWN_TIME, commands.BucketType.guild)
 
-
-@bot.command()
-async def setprefix(ctx, prefix: str):
-    if ctx.author == ctx.guild.owner:
-        prefixes = load_prefixes()
-        prefixes[ctx.guild.id] = prefix
-        save_prefixes(prefixes)
-        await ctx.send(f"New prefix is {prefix}")
-    else:
-        await ctx.send("Only the server owner can change the prefix.")
 
 
 command_count = {}
@@ -500,16 +430,7 @@ async def messageserver(ctx, *, custom_message: str):
 #     await ctx.send(embed=embed)
 
 
-@bot.command()
-async def games(ctx):
-    # Check if the command was invoked in the allowed server
-    if ctx.guild.id != Naraku:
-        await ctx.send("This command can only be used in the allowed server.")
-        return
-    embed = discord.Embed(title="",
-                          description=f"{ctx.author.mention} the games command has been retired and no longer works. For Halo 3 use the halo3 command and for Halo Reach use the haloreach command.", color=discord.Color.red())
 
-    await ctx.send(embed=embed)
 
 
 async def find_channel_with_embeds(guild):
@@ -569,4 +490,4 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
-bot.run('bot_key')
+bot.run(TOKEN)
