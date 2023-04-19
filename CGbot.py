@@ -2,24 +2,91 @@ import discord
 from discord.ext import commands
 import json
 import requests
+import discord.ui
 import os
 import asyncio
 import datetime
 from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
-# Get the path to the JSON file in the root directory
+# BuddyBotty = 1022646163301736458
+# OTB_Testing = 1072413437604401202
+Naraku = 1040475128091385876
+OTB = 1097439166226239528
+
+servers = [1022646163301736458, 1072413437604401202]
+
+# Intenets are set to all in the code so it doesnt get complicated. Bot only requires basic permissions to function in Discord
 
 
-servers = [1040475128091385876, 932741816548229120, 848077358858764329]
+def load_prefixes():
+    try:
+        with open('prefixes.json', 'r') as f:
+            prefixes = json.load(f)
+
+        return {int(user_id): balance for user_id, balance in prefixes.items()}
+    except FileNotFoundError:
+        return {}
+
+# Create a function to save balances to a JSON file
+
+
+def save_prefixes(prefixes):
+    with open('prefixes.json', 'w') as f:
+        json.dump(prefixes, f, indent=4)
+
+
+LAST_PLAYED_FILENAME = 'prefixes.json'
+
+try:
+    with open(LAST_PLAYED_FILENAME, 'r') as f:
+        prefixes = json.load(f)
+except FileNotFoundError:
+    prefixes = {}
+    with open(LAST_PLAYED_FILENAME, 'w') as f:
+        json.dump(prefixes, f)
+
+
+# Create a function that returns the appropriate prefix for a guild
+def get_prefix(ctx, message):
+    # Load prefixes from file
+    prefixes = load_prefixes()
+    # Check if the guild has a custom prefix
+    if message.guild and message.guild.id in prefixes:
+        return prefixes[message.guild.id]
+    # Otherwise use the default prefix '/'
+    else:
+        return '/'
+
 
 COOLDOWN_TIME = 60
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 bot.cooldowns = commands.CooldownMapping.from_cooldown(
-    1, COOLDOWN_TIME, commands.BucketType.guild)
+    1, COOLDOWN_TIME, commands.BucketType.user)
 
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        seconds = error.retry_after
+        message = f"This command is on cooldown. Please try again in {seconds:.0f} seconds."
+        await ctx.send(message)
+
+    # specify the key parameter to make the cooldown per user
+    bot.cooldowns.update_rate_limit(ctx.message)
+
+
+@bot.command()
+async def setprefix(ctx, prefix: str):
+    if ctx.author == ctx.guild.owner:
+        prefixes = load_prefixes()
+        prefixes[ctx.guild.id] = prefix
+        save_prefixes(prefixes)
+        await ctx.send(f"New prefix is {prefix}")
+    else:
+        await ctx.send("Only the server owner can change the prefix.")
 
 
 command_count = {}
@@ -430,7 +497,16 @@ async def messageserver(ctx, *, custom_message: str):
 #     await ctx.send(embed=embed)
 
 
+@bot.command()
+async def games(ctx):
+    # Check if the command was invoked in the allowed server
+    if ctx.guild.id != Naraku:
+        await ctx.send("This command can only be used in the allowed server.")
+        return
+    embed = discord.Embed(title="",
+                          description=f"{ctx.author.mention} the games command has been retired and no longer works. For Halo 3 use the halo3 command and for Halo Reach use the haloreach command.", color=discord.Color.red())
 
+    await ctx.send(embed=embed)
 
 
 async def find_channel_with_embeds(guild):
